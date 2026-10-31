@@ -8,6 +8,12 @@ describe("auth", () => {
     expect(login(store, "jane@email.com", "correct-horse")?.id).toBe(jane.id);
   });
 
+  it("logs in regardless of email case and surrounding whitespace", () => {
+    const { store, jane } = seedStore();
+    expect(login(store, "Jane@Email.com", "correct-horse")?.id).toBe(jane.id);
+    expect(login(store, "  JANE@EMAIL.COM ", "correct-horse")?.id).toBe(jane.id);
+  });
+
   it("rejects a wrong password", () => {
     const { store } = seedStore();
     expect(login(store, "jane@email.com", "wrong-password")).toBeNull();
@@ -27,6 +33,11 @@ describe("auth", () => {
   it("refuses a duplicate email", () => {
     const { store } = seedStore();
     expect(() => registerCustomer(store, "Jane 2", "jane@email.com", "another-pass")).toThrow(/already registered/);
+  });
+
+  it("refuses a duplicate email that differs only in case", () => {
+    const { store } = seedStore();
+    expect(() => registerCustomer(store, "Jane 2", "JANE@email.com", "another-pass")).toThrow(/already registered/);
   });
 
   it("refuses a short password", () => {
