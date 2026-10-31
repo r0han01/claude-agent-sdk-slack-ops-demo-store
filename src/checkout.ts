@@ -1,4 +1,4 @@
-import { applyDiscount } from "./discounts.js";
+import { applyDiscount, recordRedemption } from "./discounts.js";
 import { chargeOrder } from "./payments.js";
 import { shippingCost } from "./shipping.js";
 import type { Store } from "./store.js";
@@ -57,5 +57,6 @@ export function checkout(store: Store, req: CheckoutRequest, now: Date = new Dat
   for (const item of items) store.getProduct(item.productId).stock -= item.qty;
   store.orders.push(order);
   chargeOrder(store, order.id, totalCents, req.idempotencyKey);
+  if (req.discountCode) recordRedemption(store, req.discountCode, req.customerId, order.id);
   return order;
 }
