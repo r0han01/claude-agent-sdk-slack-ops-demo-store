@@ -33,6 +33,24 @@ describe("checkout", () => {
     expect(order.totalCents).toBe(5400);
   });
 
+  it("lets a customer use a single-use code only once", () => {
+    const { store, jane } = seedStore();
+    const first = checkout(
+      store,
+      { customerId: jane.id, items: [{ productId: 2, qty: 1 }], discountCode: "SAVE10", idempotencyKey: "k1" },
+      NOW,
+    );
+    expect(first.discountCents).toBe(600);
+    expect(store.redemptions).toEqual([{ code: "SAVE10", customerId: jane.id, orderId: first.id }]);
+    expect(() =>
+      checkout(
+        store,
+        { customerId: jane.id, items: [{ productId: 2, qty: 1 }], discountCode: "save10", idempotencyKey: "k2" },
+        NOW,
+      ),
+    ).toThrow(/already used/);
+  });
+
   it("charges the order total once", () => {
     const { store, jane } = seedStore();
     const order = checkout(store, { customerId: jane.id, items: [{ productId: 3, qty: 2 }], idempotencyKey: "k1" }, NOW);
