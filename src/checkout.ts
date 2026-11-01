@@ -14,6 +14,16 @@ export interface CheckoutRequest {
 export class CheckoutError extends Error {}
 
 export function checkout(store: Store, req: CheckoutRequest, now: Date = new Date()): Order {
+  // A retried or double-clicked "Pay" sends the same key: return the order it already created.
+  const previous = store.payments.find((p) => p.idempotencyKey === req.idempotencyKey);
+  if (previous) {
+    const order = store.getOrder(previous.orderId);
+    if (order.customerId !== req.customerId) {
+      throw new CheckoutError("Idempotency key was already used by another checkout");
+    }
+    return order;
+  }
+
   if (req.items.length === 0) throw new CheckoutError("Cart is empty");
   if (!store.customers.some((c) => c.id === req.customerId)) throw new CheckoutError("Unknown customer");
 

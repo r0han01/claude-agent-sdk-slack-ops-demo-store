@@ -8,6 +8,13 @@ import type { Cents, Payment } from "./types.js";
  */
 export function chargeOrder(store: Store, orderId: number, amountCents: Cents, idempotencyKey: string): Payment {
   if (amountCents <= 0) throw new Error("Charge amount must be positive");
+  const existing = store.payments.find((p) => p.idempotencyKey === idempotencyKey);
+  if (existing) {
+    if (existing.orderId !== orderId || existing.amountCents !== amountCents) {
+      throw new Error("Idempotency key was already used for a different charge");
+    }
+    return existing;
+  }
   const payment: Payment = {
     id: store.nextId("payment"),
     orderId,
