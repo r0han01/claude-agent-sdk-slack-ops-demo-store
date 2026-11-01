@@ -17,4 +17,12 @@ describe("shipping", () => {
   it("is still free when a discount leaves the order above $50", () => {
     expect(shippingCost(8000, 1000)).toBe(0);
   });
+
+  it("charges the flat rate when a discount takes the order under $50", () => {
+    expect(shippingCost(5200, 500)).toBe(FLAT_SHIPPING_CENTS);
+  });
+
+  it("is free when a discount leaves the order at exactly $50", () => {
+    expect(shippingCost(5500, 500)).toBe(0);
+  });
 });

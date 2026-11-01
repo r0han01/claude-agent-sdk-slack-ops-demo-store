@@ -33,6 +33,19 @@ describe("checkout", () => {
     expect(order.totalCents).toBe(5400);
   });
 
+  it("charges shipping when a discount takes the order under $50", () => {
+    const { store, jane } = seedStore();
+    const order = checkout(
+      store,
+      { customerId: jane.id, items: [{ productId: 4, qty: 2 }], discountCode: "FIVEOFF", idempotencyKey: "k1" },
+      NOW,
+    );
+    expect(order.subtotalCents).toBe(5000);
+    expect(order.discountCents).toBe(500);
+    expect(order.shippingCents).toBe(FLAT_SHIPPING_CENTS);
+    expect(order.totalCents).toBe(4500 + FLAT_SHIPPING_CENTS);
+  });
+
   it("charges the order total once", () => {
     const { store, jane } = seedStore();
     const order = checkout(store, { customerId: jane.id, items: [{ productId: 3, qty: 2 }], idempotencyKey: "k1" }, NOW);
