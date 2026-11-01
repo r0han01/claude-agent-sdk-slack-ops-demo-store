@@ -40,6 +40,35 @@ describe("checkout", () => {
     expect(store.payments[0]!.amountCents).toBe(order.totalCents);
   });
 
+  it("charges once when Pay is double-clicked with the same idempotency key", () => {
+    const { store, jane } = seedStore();
+    const req = { customerId: jane.id, items: [{ productId: 2, qty: 1 }], idempotencyKey: "k1" };
+    const first = checkout(store, req, NOW);
+    const second = checkout(store, req, NOW);
+    expect(second).toBe(first);
+    expect(store.payments).toHaveLength(1);
+    expect(store.orders).toHaveLength(1);
+    expect(store.getProduct(2).stock).toBe(9);
+  });
+
+  it("charges separately for different idempotency keys", () => {
+    const { store, jane } = seedStore();
+    checkout(store, { customerId: jane.id, items: [{ productId: 2, qty: 1 }], idempotencyKey: "k1" }, NOW);
+    checkout(store, { customerId: jane.id, items: [{ productId: 2, qty: 1 }], idempotencyKey: "k2" }, NOW);
+    expect(store.payments).toHaveLength(2);
+    expect(store.orders).toHaveLength(2);
+  });
+
+  it("refuses an idempotency key already used by another customer", () => {
+    const { store, jane } = seedStore();
+    checkout(store, { customerId: jane.id, items: [{ productId: 2, qty: 1 }], idempotencyKey: "k1" }, NOW);
+    store.customers.push({ id: 99, name: "Other", email: "other@email.com", passwordHash: "x" });
+    expect(() =>
+      checkout(store, { customerId: 99, items: [{ productId: 2, qty: 1 }], idempotencyKey: "k1" }, NOW),
+    ).toThrow(/idempotency key/i);
+    expect(store.payments).toHaveLength(1);
+  });
+
   it("takes stock off the shelf", () => {
     const { store, jane } = seedStore();
     checkout(store, { customerId: jane.id, items: [{ productId: 2, qty: 3 }], idempotencyKey: "k1" }, NOW);
